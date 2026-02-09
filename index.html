@@ -253,6 +253,7 @@ textarea.fi{resize:vertical;min-height:72px}
   <div class="hdr">
     <svg width="28" height="28" viewBox="0 0 100 100" fill="none"><circle cx="50" cy="50" r="46" stroke="var(--accent)" stroke-width="8" opacity=".2"/><path d="M50 4a46 46 0 0 1 46 46" stroke="var(--accent)" stroke-width="8" stroke-linecap="round"/><path d="M50 4a46 46 0 0 0-36 18" stroke="#7ec8c8" stroke-width="8" stroke-linecap="round"/><path d="M14 22a46 46 0 0 0-6 38" stroke="#a8d8d8" stroke-width="8" stroke-linecap="round"/></svg>
     <span class="hdr-t">MarketLens</span>
+    <button class="hdr-b" onclick="openSh('sh-set')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
   </div>
   <div class="scr" id="feed-s"></div>
 </div>
@@ -312,19 +313,7 @@ textarea.fi{resize:vertical;min-height:72px}
   </div>
 </div>
 
-<!-- SETTINGS -->
-<div id="v-set" class="view">
-  <div class="hdr"><span class="hdr-t">Settings</span></div>
-  <div class="scr">
-    <div class="sec">Connection</div>
-    <div class="li"><div class="li-bd"><div class="li-t">API Status</div><div class="li-s" id="api-st"><span style="color:var(--muted)">Not connected</span></div></div></div>
-    <div class="sec">Account</div>
-    <div class="li"><div class="li-bd"><div class="li-t">Profile</div></div></div>
-    <div class="li"><div class="li-bd"><div class="li-t">Support</div></div></div>
-    <div class="li" onclick="doLogout()" style="cursor:pointer"><div class="li-bd"><div class="li-t" style="color:var(--err)">Log Out</div></div></div>
-    <div style="padding:32px;text-align:center"><p style="font-size:12px;color:var(--muted)">MarketLens v2.0</p></div>
-  </div>
-</div>
+
 </div>
 
 <nav class="tabs" id="tabs">
@@ -332,7 +321,6 @@ textarea.fi{resize:vertical;min-height:72px}
   <button class="tab" data-t="lib" onclick="go('lib')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Library</span></button>
   <button class="tab" data-t="res" onclick="go('res')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span>Research</span></button>
   <button class="tab" data-t="ws" onclick="go('ws')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Workspaces</span></button>
-  <button class="tab" data-t="set" onclick="go('set')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>More</span></button>
 </nav>
 </div>
 
@@ -384,6 +372,21 @@ textarea.fi{resize:vertical;min-height:72px}
   <div class="sh-hd"><span class="sh-tt">Add Documents</span><button class="sh-x" onclick="closeSh()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
   <div class="sh-bd" style="padding:0" id="adddoc-ls"></div>
   <div style="padding:12px 16px;border-top:1px solid var(--hair)"><button class="btn btn-p btn-w" onclick="confirmAddDocs()">Add Selected</button></div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sh" id="sh-set" style="max-height:55vh">
+  <div class="sh-hl"></div>
+  <div class="sh-hd"><span class="sh-tt">Settings</span><button class="sh-x" onclick="closeSh()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="sh-bd" style="padding:0">
+    <div class="sec">Connection</div>
+    <div class="li"><div class="li-bd"><div class="li-t">API Status</div><div class="li-s" id="api-st"><span style="color:var(--muted)">Not connected</span></div></div></div>
+    <div class="sec">Account</div>
+    <div class="li"><div class="li-bd"><div class="li-t">Profile</div></div></div>
+    <div class="li"><div class="li-bd"><div class="li-t">Support</div></div></div>
+    <div class="li" onclick="closeSh();doLogout()" style="cursor:pointer"><div class="li-bd"><div class="li-t" style="color:var(--err)">Log Out</div></div></div>
+    <div style="padding:20px;text-align:center"><p style="font-size:12px;color:var(--muted)">MarketLens v2.0</p></div>
+  </div>
 </div>
 
 <div class="toast-c" id="toast-c"></div>
@@ -569,7 +572,7 @@ function hideLd(){document.getElementById('ld').classList.add('hide')}
 // ===== NAV =====
 function go(t){
   curTab=t;
-  ['feed','lib','res','ws','set'].forEach(v=>{const e=document.getElementById('v-'+v);if(e)e.classList.toggle('on',v===t)});
+  ['feed','lib','res','ws'].forEach(v=>{const e=document.getElementById('v-'+v);if(e)e.classList.toggle('on',v===t)});
   document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
   if(t==='feed')renderFeed();if(t==='lib')renderLib();if(t==='ws')renderWs();
 }
