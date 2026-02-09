@@ -275,6 +275,17 @@ textarea.fi{resize:vertical;min-height:72px}
 <div id="v-res" class="view">
   <div class="hdr"><span class="hdr-t">New Research</span></div>
   <div class="scr" style="padding:16px" id="res-form">
+    <div id="r-parent" style="display:none;background:var(--accent-s);border:1px solid var(--accent-m);border-radius:var(--r-s);padding:10px 12px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        <span style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.03em">Follow-up Research</span>
+        <button onclick="clearFollowUp()" style="margin-left:auto;color:var(--muted);padding:2px" title="Clear">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="r-parent-title" style="font-size:14px;font-weight:500;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      <div id="r-parent-meta" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+    </div>
     <div class="fg"><label class="fl">Category</label><div class="chips" id="r-cats" style="padding:0;flex-wrap:wrap"></div></div>
     <div class="fg" id="r-fwg" style="display:none"><label class="fl">Framework</label><div class="chips" id="r-fws" style="padding:0;flex-wrap:wrap"></div></div>
     <div style="display:flex;gap:12px;margin-bottom:16px">
@@ -784,13 +795,49 @@ function saveNote(){
 }
 
 // ===== FOLLOW UP =====
+let followUpDoc=null;
+
 function openFollowUp(){
   if(!curDoc)return;
-  selResWs=null;selCat=null;selFw=null;
-  // Pre-populate research tab with follow-up context
-  go('res');
-  closeSh();closeRdr();
-  setTimeout(()=>{document.getElementById('r-ctx').value=`Follow-up on: ${cleanTitle(curDoc.title)}\n\nDirection: `},100);
+  followUpDoc={id:curDocId,title:cleanTitle(curDoc.title),type:curDoc.type};
+
+  // Find which workspace this doc belongs to
+  selResWs=null;
+  for(const c of colls){if((collMems[c.id]||[]).includes(curDocId)){selResWs=c.id;break}}
+  const ws=colls.find(c=>c.id===selResWs);
+
+  // Reset form selections
+  selCat=null;selFw=null;
+  document.querySelectorAll('#r-cats .ch').forEach(x=>x.classList.remove('on'));
+  document.getElementById('r-fwg').style.display='none';
+
+  closeSh();closeRdr();go('res');
+
+  setTimeout(()=>{
+    // Show parent banner
+    const p=document.getElementById('r-parent');
+    p.style.display='block';
+    document.getElementById('r-parent-title').textContent=followUpDoc.title;
+    document.getElementById('r-parent-meta').textContent=followUpDoc.type+(ws?' · '+ws.name:'');
+
+    // Set workspace
+    document.getElementById('r-ws-label').textContent=ws?ws.name:'None — library only';
+    document.getElementById('r-ws-label').style.color=ws?'var(--ink)':'var(--muted)';
+
+    // Pre-fill context
+    document.getElementById('r-ctx').value='';
+    document.getElementById('r-ctx').placeholder='What direction should the follow-up take?';
+    document.getElementById('r-ctx').focus();
+  },120);
+}
+
+function clearFollowUp(){
+  followUpDoc=null;
+  document.getElementById('r-parent').style.display='none';
+  document.getElementById('r-ctx').placeholder='Describe your research question...';
+  selResWs=null;
+  document.getElementById('r-ws-label').textContent='None — library only';
+  document.getElementById('r-ws-label').style.color='var(--muted)';
 }
 
 // ===== RESEARCH FORM =====
@@ -830,7 +877,9 @@ async function doResearch(){
   const btn=document.getElementById('r-go');btn.disabled=true;btn.textContent='Starting...';
 
   const ws=colls.find(c=>c.id===selResWs);
-  let prompt=`Framework: ${selFw}\nScope: ${selSc}\nAnalytical Rigor: ${selRi}\nContext: ${ctx}\n\nGenerate a comprehensive research document with hyperlinked sources.\nThe final output must be a document uploaded to the content object library.`;
+  let prompt=`Framework: ${selFw}\nScope: ${selSc}\nAnalytical Rigor: ${selRi}\n`;
+  if(followUpDoc){prompt+=`\nFOLLOW-UP RESEARCH: This is a follow-up to document "${followUpDoc.title}" (ID: ${followUpDoc.id}). Reference and build upon the parent document.\n`}
+  prompt+=`Context: ${ctx}\n\nGenerate a comprehensive research document with hyperlinked sources.\nThe final output must be a document uploaded to the content object library.`;
   if(selResWs&&ws){prompt+=`\n\nFINAL STEP - CRITICAL: After uploading the document to the content library, you MUST:\n- Add the newly created document to collection ID: ${selResWs} (named "${ws.name}") using the add_to_collection tool\n- Confirm completion`}
   else{prompt+='\n\nNOTE: Save to library only — do NOT add to any collection.'}
 
@@ -844,7 +893,9 @@ async function doResearch(){
   }catch(e){toast('Failed to start research','err')}
   btn.disabled=false;btn.textContent='Generate Research';
   // Reset
-  document.getElementById('r-ctx').value='';selCat=null;selFw=null;
+  document.getElementById('r-ctx').value='';selCat=null;selFw=null;followUpDoc=null;
+  document.getElementById('r-parent').style.display='none';
+  document.getElementById('r-ctx').placeholder='Describe your research question...';
   document.querySelectorAll('#r-cats .ch').forEach(x=>x.classList.remove('on'));
   document.getElementById('r-fwg').style.display='none';
 }
