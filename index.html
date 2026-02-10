@@ -182,6 +182,10 @@ textarea.fi{resize:vertical;min-height:84px}
 .jc-bar{height:2px;background:rgba(0,0,0,.04);border-radius:2px;overflow:hidden;margin-top:12px}
 .jc-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent),var(--ok));animation:prog 3s ease-in-out infinite}
 .jc-acts{display:flex;gap:6px;margin-top:12px}
+.jc-st.fail-reason{color:var(--err);font-weight:450}
+.jc-st-strip.fail{background:var(--err);box-shadow:0 0 10px rgba(166,61,61,.12)}
+.act-new{display:flex;align-items:center;justify-content:center;gap:6px;margin:6px 18px 6px;padding:14px;border-radius:var(--r);font-size:12px;font-weight:550;color:var(--accent);cursor:pointer;border:1.5px dashed var(--accent-m);transition:all .35s var(--ease);letter-spacing:.01em}
+.act-new:hover,.act-new:active{background:var(--accent-s);border-color:var(--accent)}
 @keyframes prog{0%{width:10%}50%{width:70%}100%{width:92%}}
 
 .scr{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -485,7 +489,7 @@ const CFG={
   KEY:'sk-57b1f54a776432c923f1f17551102bf3',
   ENV:'681915c6a01fb262a410c161',
   MODEL:'publishers/anthropic/models/claude-opus-4-5',
-  INT_RES:'698178ed438557d888f72680',
+  INT_RES:'ResearchV2',
   INT_CHAT:'DocumentChat'
 };
 
@@ -506,7 +510,8 @@ const API={
   async callAuth(ep,o={}){
     const tk=await this.token();
     const r=await fetch(`${CFG.BASE}${ep}`,{...o,headers:{'Authorization':`Bearer ${tk}`,'Content-Type':'application/json',...(o.headers||{})}});
-    if(!r.ok)throw new Error(`API ${r.status}`);const t=await r.text();return t?JSON.parse(t):null;
+    if(!r.ok){const t=await r.text().catch(()=>'');let msg=`API ${r.status}`;try{const j=JSON.parse(t);msg=j.message||j.error||msg}catch(e){if(t)msg=t.substring(0,100)}throw new Error(msg)}
+    const t=await r.text();return t?JSON.parse(t):null;
   },
   loadDocs(){return this.call('/objects?limit=1000&offset=0')},
   getDoc(id){return this.call(`/objects/${id}`)},
@@ -516,7 +521,7 @@ const API={
   createColl(name){return this.call('/collections',{method:'POST',body:JSON.stringify({name,description:'',dynamic:false})})},
   addToColl(cid,ids){return this.call(`/collections/${cid}/members`,{method:'POST',body:JSON.stringify({action:'add',members:ids})})},
   removeFromColl(cid,ids){return this.call(`/collections/${cid}/members`,{method:'POST',body:JSON.stringify({action:'delete',members:ids})})},
-  execResearch(task){return this.callAuth('/execute/async',{method:'POST',body:JSON.stringify({type:'conversation',interaction:CFG.INT_RES,data:{Task:task},config:{environment:CFG.ENV,model:CFG.MODEL}})})},
+  execResearch(data){return this.callAuth('/execute/async',{method:'POST',body:JSON.stringify({type:'conversation',interaction:CFG.INT_RES,data,config:{environment:CFG.ENV,model:CFG.MODEL}})})},
   execChat(task){return this.callAuth('/execute/async',{method:'POST',body:JSON.stringify({type:'conversation',interaction:CFG.INT_CHAT,data:{task},config:{environment:CFG.ENV,model:CFG.MODEL},interactive:true,max_iterations:100})})},
   getRunStatus(wf,run){return this.call(`/workflows/runs/${wf}/${run}`)},
   async stream(wf,run,onMsg,onDone,onErr){
@@ -693,8 +698,10 @@ function renderActivity(){
       h+=`<div class="jc"><div class="jc-st-strip done"></div><div class="jc-inner"><div class="jc-ic done">${IC.done}</div><div class="jc-bd"><div class="jc-n">${esc(j.docTitle||j.name)}</div><div class="jc-st">Complete</div><div class="jc-acts">${j.docId?`<button class="btn btn-p btn-sm" onclick="openDocById('${j.docId}')">Read</button>`:''}<button class="btn btn-sm btn-s" onclick="dismissJob(${j.id})">Dismiss</button></div></div></div></div>`;
     });
     failed.forEach(j=>{
-      h+=`<div class="jc"><div class="jc-st-strip fail"></div><div class="jc-inner"><div class="jc-ic fail">${IC.fail}</div><div class="jc-bd"><div class="jc-n">${esc(j.name)}</div><div class="jc-st">${j.failReason||'Failed'}</div><div class="jc-acts"><button class="btn btn-sm btn-s" onclick="dismissJob(${j.id})">Dismiss</button></div></div></div></div>`;
+      h+=`<div class="jc"><div class="jc-st-strip fail"></div><div class="jc-inner"><div class="jc-ic fail">${IC.fail}</div><div class="jc-bd"><div class="jc-n">${esc(j.name)}</div><div class="jc-st fail-reason">${esc(j.failReason||'Failed')}</div><div class="jc-acts"><button class="btn btn-sm btn-s" onclick="retryJob(${j.id})">Retry</button><button class="btn btn-sm btn-s" onclick="dismissJob(${j.id})">Dismiss</button></div></div></div></div>`;
     });
+    // Inline "+ New Research" — natural continuation after seeing activity
+    h+=`<div class="act-new" onclick="go('res')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New Research</div>`;
   }
 
   if(!hasJobs&&!allDocs.length){
@@ -970,20 +977,41 @@ async function doResearch(){
   const btn=document.getElementById('r-go');btn.disabled=true;btn.textContent='Starting...';
 
   const ws=colls.find(c=>c.id===selResWs);
-  let prompt=`Framework: ${selFw}\nScope: ${selSc}\nAnalytical Rigor: ${selRi}\n`;
-  if(followUpDoc){prompt+=`\nFOLLOW-UP RESEARCH: This is a follow-up to document "${followUpDoc.title}" (ID: ${followUpDoc.id}). Reference and build upon the parent document.\n`}
-  prompt+=`Context: ${ctx}\n\nGenerate a comprehensive research document with hyperlinked sources.\nThe final output must be a document uploaded to the content object library.`;
-  if(selResWs&&ws){prompt+=`\n\nFINAL STEP - CRITICAL: After uploading the document to the content library, you MUST:\n- Add the newly created document to collection ID: ${selResWs} (named "${ws.name}") using the add_to_collection tool\n- Confirm completion`}
-  else{prompt+='\n\nNOTE: Save to library only — do NOT add to any collection.'}
+
+  // Build structured data for interaction schema
+  const data={
+    category:CATS[selCat]||selCat,
+    framework:selFw,
+    scope:selSc,
+    rigor:selRi,
+    context:ctx
+  };
+
+  // Add follow-up context
+  if(followUpDoc){
+    data.follow_up={parent_id:followUpDoc.id,parent_title:followUpDoc.title};
+    data.context+=`\n\nFOLLOW-UP RESEARCH: This is a follow-up to document "${followUpDoc.title}" (ID: ${followUpDoc.id}). Reference and build upon the parent document.`;
+  }
+
+  // Add workspace instructions
+  if(selResWs&&ws){
+    data.workspace={id:selResWs,name:ws.name};
+    data.context+=`\n\nFINAL STEP - CRITICAL: After uploading the document to the content library, you MUST:\n- Add the newly created document to collection ID: ${selResWs} (named "${ws.name}") using the add_to_collection tool\n- Confirm completion`;
+  }else{
+    data.context+='\n\nNOTE: Save to library only — do NOT add to any collection.';
+  }
 
   try{
-    const res=await API.execResearch(prompt);
+    const res=await API.execResearch(data);
     const jid=++jobId;
     const job={id:jid,name:ctx.length>50?ctx.substring(0,47)+'...':ctx,status:'running',statusText:'Starting...',workflowId:res.workflowId,runId:res.runId,wsId:selResWs,startedAt:Date.now(),docId:null,docTitle:null,failReason:null};
     jobs.unshift(job);saveJobs();
     pollJob(jid,res.workflowId,res.runId);
     toast('Research started');go('lib');renderBadge();
-  }catch(e){toast('Failed to start research','err')}
+  }catch(e){
+    const msg=e.message||'Failed to start research';
+    toast(msg.length>60?msg.substring(0,57)+'...':msg,'err');
+  }
   btn.disabled=false;btn.textContent='Generate Research';
   // Reset
   document.getElementById('r-ctx').value='';selCat=null;selFw=null;followUpDoc=null;
@@ -1000,14 +1028,20 @@ function pollJob(jid,wf,run){
   // Stream status in background
   API.stream(wf,run,d=>{
     if(d.type==='update'&&d.message){const b=bucket(d.message);if(b)updJob(jid,'statusText',b)}
+    if(d.type==='error'||d.type==='failure'){failJobById(jid,d.message||'Execution failed')}
     if(d.message&&d.message.includes('Financial Services only')){failJobById(jid,'Not a financial topic')}
-  },null,null);
+    if(d.message&&d.message.includes('execution_failed')){failJobById(jid,'Execution failed')}
+  },null,e=>{failJobById(jid,'Connection lost')});
   polls[jid]=setInterval(async()=>{
-    att++;if(att>120){clearInterval(polls[jid]);delete polls[jid];complJob(jid);return}
+    att++;if(att>120){clearInterval(polls[jid]);delete polls[jid];failJobById(jid,'Timed out');return}
     try{
       const st=await API.getRunStatus(wf,run);const s=(st?.status||'').toLowerCase();
       if(['completed','success','finished','done','succeeded'].includes(s)){clearInterval(polls[jid]);delete polls[jid];complJob(jid)}
-      else if(['failed','error','cancelled'].includes(s)){clearInterval(polls[jid]);delete polls[jid];complJob(jid)}
+      else if(['failed','error','cancelled','closed'].includes(s)){
+        clearInterval(polls[jid]);delete polls[jid];
+        const reason=st?.error||st?.message||st?.result?.error||('Status: '+s);
+        failJobById(jid,typeof reason==='string'?reason.substring(0,80):s);
+      }
     }catch(e){}
   },5000);
 }
@@ -1029,6 +1063,7 @@ async function complJob(jid){
 }
 function failJobById(jid,r){const j=jobs.find(x=>x.id===jid);if(j){j.status='failed';j.failReason=r;saveJobs();if(polls[jid]){clearInterval(polls[jid]);delete polls[jid]}renderLib();renderBadge()}}
 function dismissJob(jid){jobs=jobs.filter(j=>j.id!==jid);saveJobs();renderLib();renderBadge()}
+function retryJob(jid){const j=jobs.find(x=>x.id===jid);const name=j?j.name:'';jobs=jobs.filter(x=>x.id!==jid);saveJobs();go('res');if(name)document.getElementById('r-ctx').value=name;renderBadge()}
 function renderBadge(){
   const n=jobs.filter(j=>j.status==='running').length;
   document.querySelectorAll('.tab .bdg').forEach(b=>b.remove());
