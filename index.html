@@ -981,7 +981,7 @@ async function doResearch(){
   // Build structured data for interaction schema
   const data={
     category:CATS[selCat]||selCat,
-    framework:selFw,
+    focus:selFw,
     scope:selSc,
     rigor:selRi,
     context:ctx
@@ -989,13 +989,11 @@ async function doResearch(){
 
   // Add follow-up context
   if(followUpDoc){
-    data.follow_up={parent_id:followUpDoc.id,parent_title:followUpDoc.title};
     data.context+=`\n\nFOLLOW-UP RESEARCH: This is a follow-up to document "${followUpDoc.title}" (ID: ${followUpDoc.id}). Reference and build upon the parent document.`;
   }
 
   // Add workspace instructions
   if(selResWs&&ws){
-    data.workspace={id:selResWs,name:ws.name};
     data.context+=`\n\nFINAL STEP - CRITICAL: After uploading the document to the content library, you MUST:\n- Add the newly created document to collection ID: ${selResWs} (named "${ws.name}") using the add_to_collection tool\n- Confirm completion`;
   }else{
     data.context+='\n\nNOTE: Save to library only — do NOT add to any collection.';
